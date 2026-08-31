@@ -1,0 +1,1 @@
+"""Synthetic transaction data generation."""

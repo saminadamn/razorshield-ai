@@ -1,0 +1,125 @@
+{
+  "model": "lightgbm",
+  "calibration": {
+    "raw": {
+      "brier": 0.013354549061027603,
+      "ece": 0.0071307198844070725,
+      "max_bin_deviation": 0.07688981406860851,
+      "mean_predicted": 0.033066458588174266,
+      "observed_rate": 0.03545
+    },
+    "calibrated": {
+      "brier": 0.013533444528272747,
+      "ece": 0.004801246294413827,
+      "max_bin_deviation": 0.05495682455235673,
+      "mean_predicted": 0.03113829011208172,
+      "observed_rate": 0.03545
+    }
+  },
+  "scale": {
+    "p_medium": 0.07317073170731707,
+    "p_high": 0.1346153846153846,
+    "p_critical": 0.6666666666666666,
+    "p_floor": 1e-05,
+    "p_ceiling": 0.999
+  },
+  "action_threshold": 0.1346153846153846,
+  "bands_validation": [
+    {
+      "band": "LOW",
+      "n": 19089,
+      "share": 0.95445,
+      "fraud_rate": 0.0044004400440044,
+      "lift": 0.1673171119393308,
+      "fraud_captured": 84.0,
+      "recall": 0.1596958174904943,
+      "score_range": "0-30",
+      "amount_at_risk": 118777.22999999998
+    },
+    {
+      "band": "MEDIUM",
+      "n": 188,
+      "share": 0.0094,
+      "fraud_rate": 0.0797872340425532,
+      "lift": 3.03373513469784,
+      "fraud_captured": 15.0,
+      "recall": 0.028517110266159697,
+      "score_range": "30-37",
+      "amount_at_risk": 17378.300000000003
+    },
+    {
+      "band": "HIGH",
+      "n": 358,
+      "share": 0.0179,
+      "fraud_rate": 0.276536312849162,
+      "lift": 10.51468870148905,
+      "fraud_captured": 99.0,
+      "recall": 0.188212927756654,
+      "score_range": "60-75",
+      "amount_at_risk": 408452.72000000003
+    },
+    {
+      "band": "CRITICAL",
+      "n": 365,
+      "share": 0.01825,
+      "fraud_rate": 0.8986301369863013,
+      "lift": 34.1684462732434,
+      "fraud_captured": 328.0,
+      "recall": 0.623574144486692,
+      "score_range": "80-100",
+      "amount_at_risk": 2288533.2800000003
+    }
+  ],
+  "bands_test": [
+    {
+      "band": "LOW",
+      "n": 18925,
+      "share": 0.94625,
+      "fraud_rate": 0.006129458388375165,
+      "lift": 0.17290432689351665,
+      "fraud_captured": 116.0,
+      "recall": 0.16361071932299012,
+      "score_range": "0-30",
+      "amount_at_risk": 189983.72999999998
+    },
+    {
+      "band": "MEDIUM",
+      "n": 193,
+      "share": 0.00965,
+      "fraud_rate": 0.09844559585492228,
+      "lift": 2.777026681380036,
+      "fraud_captured": 19.0,
+      "recall": 0.02679830747531735,
+      "score_range": "30-38",
+      "amount_at_risk": 45909.13
+    },
+    {
+      "band": "HIGH",
+      "n": 448,
+      "share": 0.0224,
+      "fraud_rate": 0.41964285714285715,
+      "lift": 11.837598226878903,
+      "fraud_captured": 188.0,
+      "recall": 0.2651622002820874,
+      "score_range": "60-79",
+      "amount_at_risk": 671340.88
+    },
+    {
+      "band": "CRITICAL",
+      "n": 434,
+      "share": 0.0217,
+      "fraud_rate": 0.8894009216589862,
+      "lift": 25.08888354468226,
+      "fraud_captured": 386.0,
+      "recall": 0.5444287729196051,
+      "score_range": "80-100",
+      "amount_at_risk": 1830811.36
+    }
+  ],
+  "band_policy": {
+    "LOW": "allow",
+    "MEDIUM": "step-up authentication",
+    "HIGH": "queue for manual review",
+    "CRITICAL": "block before capture"
+  }
+}

@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RazorShield AI — Transaction Risk Intelligence</title>
+<link rel="stylesheet" href="/static/theme.css">
+<style>
+  .stat { text-align: left; }
+  .stat .v { font-size: 34px; font-weight: 800; letter-spacing: -1.2px;
+             color: var(--brand-ink); line-height: 1.1; }
+  .stat .k { font-size: 13px; color: var(--ink-2); margin-top: 6px; }
+  .flow { display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+          margin-top: 6px; }
+  .step {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 999px;
+    padding: 8px 16px; font-size: 13.5px; font-weight: 600; color: var(--ink);
+    box-shadow: var(--shadow-sm);
+  }
+  .arrow { color: var(--muted); font-size: 15px; }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: center; }
+  @media (max-width: 940px) { .split { grid-template-columns: 1fr; } }
+  .checklist { margin: 0; padding: 0; list-style: none; }
+  .checklist li { position: relative; padding-left: 28px; margin-bottom: 13px;
+                  color: var(--ink-2); font-size: 15px; line-height: 1.6; }
+  .checklist li::before {
+    content: "✓"; position: absolute; left: 0; top: 0;
+    color: var(--blue-dark); font-weight: 800;
+  }
+  .checklist b { color: var(--ink); }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="logo" href="/">Razor<b>Shield</b></a>
+    <div class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#evidence">Evidence</a>
+      <a href="#developers">Developers</a>
+    </div>
+    <div class="nav-cta">
+      <a class="btn btn-ghost btn-sm" href="/checkout">Try a test payment</a>
+      <a class="btn btn-primary btn-sm" href="/dashboard">Open console</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero wrap">
+  <span class="eyebrow">Razorpay AI Builder Internship · Track 2</span>
+  <h1>Catch the fraud. <em>Explain</em> every call.</h1>
+  <p class="lede">
+    RazorShield AI scores a payment the moment it happens, converts the
+    probability into a 0–100 risk band, and shows the exact factors behind the
+    decision — so an analyst can act on it and a customer can be told why.
+  </p>
+  <div class="actions">
+    <a class="btn btn-primary" href="/dashboard">Open the risk console</a>
+    <a class="btn btn-ghost" href="/checkout">Make a test payment</a>
+  </div>
+  <div class="trust" id="trust">
+    <span><b>100,000</b> transactions modelled</span>
+    <span><b>4</b> models compared</span>
+    <span><b>18</b> features, batch and live</span>
+  </div>
+</header>
+
+<section class="band" id="how">
+  <div class="sec wrap">
+    <div class="sec-head">
+      <h2>From payment event to a decision an analyst can defend</h2>
+      <p>Razorpay's webhook says a payment happened. It cannot say whether the
+        customer is behaving normally — that history is ours to keep, and it is
+        where the signal lives.</p>
+    </div>
+    <div class="flow">
+      <span class="step">Payment event</span><span class="arrow">→</span>
+      <span class="step">Signature verified</span><span class="arrow">→</span>
+      <span class="step">18 features from our event store</span><span class="arrow">→</span>
+      <span class="step">Model</span><span class="arrow">→</span>
+      <span class="step">SHAP</span><span class="arrow">→</span>
+      <span class="step">Risk band + reason</span>
+    </div>
+    <div class="grid-3" style="margin-top:30px">
+      <div class="card">
+        <div class="icon">1</div>
+        <h3>Behaviour, not just the payment</h3>
+        <p>Velocity, device age, deviation from the customer's own average and
+          merchant dispute history — computed from history we maintain, because
+          no gateway sends them.</p>
+      </div>
+      <div class="card">
+        <div class="icon">2</div>
+        <h3>A score with an action attached</h3>
+        <p>Probability becomes a 0–100 score on a log-odds scale. Band cut-offs
+          are fitted on validation data from what each band should mean, not
+          picked as round numbers.</p>
+      </div>
+      <div class="card">
+        <div class="icon">3</div>
+        <h3>Reasons from SHAP, not invented</h3>
+        <p>Contributions are additive and checked every run. The sentence is
+          assembled from fixed templates — no language model is in the loop.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec wrap" id="evidence">
+  <div class="sec-head">
+    <h2>Measured on data the model never saw</h2>
+    <p>Trained and evaluated on a controlled synthetic dataset; Razorpay Test Mode
+      is the integration layer. The synthetic transactions are never presented as
+      real Razorpay traffic.</p>
+  </div>
+  <div class="grid-4" id="stats">
+    <div class="card stat"><div class="v">—</div><div class="k">PR-AUC</div></div>
+    <div class="card stat"><div class="v">—</div><div class="k">Precision</div></div>
+    <div class="card stat"><div class="v">—</div><div class="k">Recall</div></div>
+    <div class="card stat"><div class="v">—</div><div class="k">Held-out rows</div></div>
+  </div>
+
+  <div class="split" style="margin-top:40px">
+    <div>
+      <h3 style="font-size:21px;font-weight:800;letter-spacing:-.5px;margin:0 0 16px;
+                 color:var(--brand-ink)">Built so the numbers survive scrutiny</h3>
+      <ul class="checklist">
+        <li><b>Split by time, never at random.</b> A random split lets a customer's
+          later transactions inform predictions about their earlier ones.</li>
+        <li><b>Chargebacks are lagged 35 days.</b> A dispute raised on day 40 does
+          not exist for a model scoring on day 20.</li>
+        <li><b>Selected on cost, not on F1.</b> A missed fraud and a blocked
+          customer are different currencies; the threshold follows the money.</li>
+        <li><b>Training and serving proven identical.</b> A replay test asserts all
+          18 features match between batch and live, row by row.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div style="font-size:12px;text-transform:uppercase;letter-spacing:.06em;
+                  color:var(--muted);font-weight:700">Where it still fails</div>
+      <p style="margin-top:14px">Two things it does not do, stated plainly:</p>
+      <ul class="checklist" style="margin-top:14px">
+        <li><b>Slow, low-value fraud is mostly missed.</b> Amounts just above normal
+          on the customer's own device leave almost no signal.</li>
+        <li><b>Genuine anomalies get flagged.</b> A real customer on a new phone
+          abroad looks identical to a takeover. That is the false-positive cost,
+          and it is measured rather than hidden.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="developers">
+  <div class="sec wrap">
+    <div class="split">
+      <div>
+        <div class="sec-head" style="margin-bottom:20px">
+          <h2>Score a payment in one call</h2>
+          <p>The webhook is the production path. <code>/score</code> does the same
+            work from a plain JSON body, so the system can be demonstrated without
+            a Razorpay account at all.</p>
+        </div>
+        <a class="btn btn-primary" href="/docs">Read the API reference</a>
+      </div>
+      <pre class="code"><span class="c"># Score a payment attempt</span>
+curl -X POST http://localhost:8077/score \
+  -H <span class="s">'content-type: application/json'</span> \
+  -d <span class="s">'{
+    "transaction_id": "txn_001",
+    "customer_id": "CUST_008736",
+    "amount": 8450,
+    "device_id": "DEV_NEW_9001"
+  }'</span>
+
+<span class="c">{
+  <span class="k">"risk_score"</span>: 83.0,
+  <span class="k">"band"</span>: <span class="s">"CRITICAL"</span>,
+  <span class="k">"summary"</span>: <span class="s">"Critical risk driven by a device
+     first seen today and 17 transactions
+     in the previous hour."</span>
+}</span></pre>
+    </div>
+  </div>
+</section>
+
+<footer class="site">
+  <div class="wrap">
+    <div class="cols">
+      <div>
+        <div class="logo">Razor<b style="color:var(--blue)">Shield</b> AI</div>
+        <p class="blurb">Transaction risk intelligence: real-time fraud scoring with
+          explanations an analyst can act on and a customer can be told.</p>
+      </div>
+      <div>
+        <h4>Product</h4>
+        <a href="/dashboard">Risk console</a>
+        <a href="/checkout">Test checkout</a>
+        <a href="/docs">API reference</a>
+      </div>
+      <div>
+        <h4>Endpoints</h4>
+        <a href="/health">Health</a>
+        <a href="/model">Model card</a>
+        <a href="/stats">Live stats</a>
+      </div>
+      <div>
+        <h4>Track</h4>
+        <a href="#evidence">Evidence</a>
+        <a href="#how">How it works</a>
+        <a href="#developers">Developers</a>
+      </div>
+    </div>
+    <div class="fine">
+      RazorShield AI is an independent project built for the Razorpay AI Builder
+      Internship. It is not affiliated with, endorsed by, or connected to Razorpay.
+      All transactions shown are synthetic or Razorpay Test Mode — no real money moves.
+    </div>
+  </div>
+</footer>
+
+<script>
+const nf = new Intl.NumberFormat();
+(async () => {
+  try {
+    const m = await (await fetch("/model")).json();
+    const e = m.evaluation;
+    const cards = document.querySelectorAll("#stats .stat");
+    const vals = [
+      [e.pr_auc.toFixed(3), "PR-AUC on held-out data"],
+      [(e.precision * 100).toFixed(1) + "%", "Precision at the chosen threshold"],
+      [(e.recall * 100).toFixed(1) + "%", "Recall at the chosen threshold"],
+      [nf.format(e.rows), "Rows never used for fitting"],
+    ];
+    cards.forEach((c, i) => {
+      c.querySelector(".v").textContent = vals[i][0];
+      c.querySelector(".k").textContent = vals[i][1];
+    });
+  } catch (err) {
+    // The landing page is still readable without live numbers; leave the dashes.
+    document.querySelectorAll("#stats .stat .k").forEach((k) => {
+      k.textContent += " — run the pipeline to populate";
+    });
+  }
+})();
+</script>
+</body>
+</html>

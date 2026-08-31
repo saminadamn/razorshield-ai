@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RazorShield AI — Risk Console</title>
+<link rel="stylesheet" href="/static/theme.css">
+<style>
+  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  @media (max-width: 880px) { .tiles { grid-template-columns: repeat(2, 1fr); } }
+  .tile {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: 16px 18px;
+  }
+  .tile .k { font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em;
+             color: var(--muted); font-weight: 700; }
+  .tile .v { font-size: 27px; font-weight: 700; letter-spacing: -.7px; margin-top: 5px; }
+  .tile .s { font-size: 12px; color: var(--ink-2); margin-top: 3px; }
+
+  /* Horizontal bars: rounded data-end, anchored to a shared baseline. */
+  .bar-row { display: grid; grid-template-columns: 104px 1fr 136px;
+             align-items: center; gap: 12px; padding: 6px 0; }
+  .bar-row + .bar-row { border-top: 1px solid var(--line); }
+  .bname { font-size: 12.5px; font-weight: 700; letter-spacing: .03em; }
+  .track { height: 14px; background: var(--grid); border-radius: 4px; overflow: hidden; }
+  .track i { display: block; height: 100%; border-radius: 0 4px 4px 0; }
+  .bval { text-align: right; font-size: 12.5px; color: var(--ink-2);
+          font-variant-numeric: tabular-nums; }
+  .swatch { display: inline-block; width: 9px; height: 9px; border-radius: 2px;
+            margin-right: 7px; }
+
+  tbody tr { cursor: pointer; }
+  tbody tr:hover { background: var(--blue-wash); }
+  tbody tr[aria-selected="true"] { background: var(--blue-wash); }
+
+  .split { display: grid; grid-template-columns: 1.35fr 1fr; gap: 18px; align-items: start; }
+  @media (max-width: 940px) { .split { grid-template-columns: 1fr; } }
+
+  .filters { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .filters button {
+    font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+    padding: 6px 13px; border-radius: 999px; color: var(--ink-2);
+    background: var(--surface); border: 1px solid var(--line);
+  }
+  .filters button:hover { background: var(--blue-wash); }
+  .filters button[aria-pressed="true"] {
+    background: var(--blue-dark); color: #fff; border-color: var(--blue-dark);
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="logo" href="/">Razor<b>Shield</b></a>
+    <div class="nav-links">
+      <a href="/dashboard" aria-current="page">Console</a>
+      <a href="/checkout">Test checkout</a>
+      <a href="/docs">API</a>
+    </div>
+    <div class="nav-cta">
+      <span id="modelmeta" style="font-size:13px;color:var(--muted)"></span>
+      <a class="btn btn-ghost btn-sm" href="/checkout">Test payment</a>
+    </div>
+  </div>
+</nav>
+
+<main class="wrap">
+  <div class="page-head">
+    <h1>Risk console</h1>
+    <p>Live transaction scoring, model quality, and the review queue.</p>
+  </div>
+
+  <div id="error" class="err"></div>
+
+<div class="panel">
+    <h2>Live scoring</h2>
+    <div class="panel-body">
+      <p class="note">Transactions this deployment has actually scored. These are
+        unlabelled — whether each one was really fraud is not known, so no accuracy
+        figure can be computed from them.</p>
+      <div class="tiles" id="tiles"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Risk distribution — scored transactions</h2>
+    <div class="panel-body">
+      <p class="note">Bands are an ordered severity ladder; every row is labelled, so
+        colour is reinforcement rather than the only cue.</p>
+      <div id="dist"></div>
+      <div id="policy"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Model quality — held-out test split</h2>
+    <div class="panel-body">
+      <p class="note" id="evalnote"></p>
+      <div class="tiles" id="evaltiles"></div>
+      <table style="margin-top:16px">
+        <thead><tr><th>Model</th><th>PR-AUC</th><th>Precision</th><th>Recall</th>
+          <th>F1</th></tr></thead>
+        <tbody id="models"></tbody>
+      </table>
+      <div class="legend">Precision and recall are each at that model's own
+        cost-optimal threshold, so they are not comparable across rows — PR-AUC is.</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Alerts</h2>
+    <div class="panel-body">
+      <p class="note">A review queue is worked by severity, not arrival time —
+        filter to the bands that carry an action.</p>
+      <div class="filters" id="filters"></div>
+      <div class="split">
+        <div>
+          <table>
+            <thead><tr><th>Transaction</th><th>Band</th><th>Score</th><th>Amount</th></tr></thead>
+            <tbody id="alerts"></tbody>
+          </table>
+        </div>
+        <div>
+          <div id="detail-empty" class="empty">Select a transaction.</div>
+          <div id="detail" hidden></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <div class="cols">
+      <div>
+        <div class="logo">Razor<b style="color:var(--blue)">Shield</b> AI</div>
+        <p class="blurb">Transaction risk intelligence: real-time fraud scoring with
+          explanations an analyst can act on and a customer can be told.</p>
+      </div>
+      <div>
+        <h4>Product</h4>
+        <a href="/dashboard">Risk console</a>
+        <a href="/checkout">Test checkout</a>
+        <a href="/docs">API reference</a>
+      </div>
+      <div>
+        <h4>Endpoints</h4>
+        <a href="/health">Health</a>
+        <a href="/model">Model card</a>
+        <a href="/stats">Live stats</a>
+      </div>
+      <div>
+        <h4>Project</h4>
+        <a href="/">Overview</a>
+        <a href="/#evidence">Evidence</a>
+        <a href="/#developers">Developers</a>
+      </div>
+    </div>
+    <div class="fine">
+      RazorShield AI is an independent project built for the Razorpay AI Builder
+      Internship. It is not affiliated with, endorsed by, or connected to Razorpay.
+      All transactions shown are synthetic or Razorpay Test Mode — no real money moves.
+    </div>
+  </div>
+</footer>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const BANDS = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
+const BAND_VAR = { LOW: "--low", MEDIUM: "--medium", HIGH: "--high", CRITICAL: "--critical" };
+const nf = new Intl.NumberFormat();
+const money = (v) => "Rs" + nf.format(Math.round(v));
+const pct = (v) => (v * 100).toFixed(1) + "%";
+
+async function getJSON(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`${url} -> ${r.status}`);
+  return r.json();
+}
+
+function tile(k, v, s) {
+  return `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div>
+    <div class="s">${s || ""}</div></div>`;
+}
+
+function renderLive(stats) {
+  const bands = stats.bands || {};
+  const scored = stats.assessments || 0;
+  const flagged = (bands.HIGH || 0) + (bands.CRITICAL || 0);
+  $("tiles").innerHTML =
+    tile("Scored", nf.format(scored), "risk assessments stored") +
+    tile("Actionable", nf.format(flagged),
+         scored ? pct(flagged / scored) + " of scored — HIGH or CRITICAL" : "&nbsp;") +
+    tile("Events", nf.format(stats.events), "payment history held") +
+    tile("Customers", nf.format(stats.customers), "profiles tracked");
+
+  const max = Math.max(1, ...BANDS.map((b) => bands[b] || 0));
+  $("dist").innerHTML = BANDS.map((b) => {
+    const n = bands[b] || 0;
+    const share = scored ? n / scored : 0;
+    return `<div class="bar-row" title="${b}: ${nf.format(n)} of ${nf.format(scored)}">
+      <div class="bname"><span class="swatch" style="background:var(${BAND_VAR[b]})"></span>${b}</div>
+      <div class="track"><i style="width:${(n / max) * 100}%;background:var(${BAND_VAR[b]})"></i></div>
+      <div class="bval">${nf.format(n)} &nbsp;·&nbsp; ${pct(share)}</div>
+    </div>`;
+  }).join("");
+}
+
+function renderModel(m) {
+  const e = m.evaluation;
+  $("modelmeta").innerHTML = `model <code>${m.model}</code>`;
+  $("evalnote").innerHTML =
+    `Measured on ${nf.format(e.rows)} transactions the model never saw during fitting or
+     tuning (${pct(e.fraud_rate)} fraud). <strong>These are not the live transactions
+     above</strong> — live payments carry no labels. Selected on ${m.selected_on}.`;
+
+  $("evaltiles").innerHTML =
+    tile("PR-AUC", e.pr_auc.toFixed(3), "ranking quality at a 3% base rate") +
+    tile("Precision", pct(e.precision), `${nf.format(e.false_positives)} false positives`) +
+    tile("Recall", pct(e.recall), `${nf.format(e.false_negatives)} fraud missed`) +
+    tile("F1", e.f1.toFixed(3), "at the cost-optimal threshold");
+
+  $("models").innerHTML = Object.entries(m.all_models).map(([name, v]) => {
+    const sel = name === m.model;
+    return `<tr${sel ? ' aria-selected="true"' : ""}>
+      <td>${name.replace(/_/g, " ")}${sel ? " &nbsp;<strong>selected</strong>" : ""}</td>
+      <td>${v.pr_auc.toFixed(3)}</td><td>${pct(v.precision)}</td>
+      <td>${pct(v.recall)}</td><td>${v.f1.toFixed(3)}</td></tr>`;
+  }).join("");
+
+  // Table view of the same band data, with what each band actually does.
+  const rows = m.bands_test.map((b) =>
+    `<tr style="cursor:default"><td><span class="pill ${b.band}">${b.band}</span></td>
+     <td>${m.band_policy[b.band]}</td><td>${pct(b.fraud_rate)}</td>
+     <td>${b.lift.toFixed(1)}x</td><td>${pct(b.recall)}</td></tr>`).join("");
+  $("policy").innerHTML =
+    `<table style="margin-top:18px"><thead><tr><th>Band</th><th>Action</th>
+     <th>Fraud rate</th><th>Lift</th><th>Fraud caught</th></tr></thead>
+     <tbody>${rows}</tbody></table>
+     <div class="legend">Fraud rate, lift and recall are from the held-out test
+     split — the band boundaries were fitted on validation and not touched since.</div>`;
+}
+
+function renderAlerts(rows) {
+  if (!rows.length) {
+    $("alerts").innerHTML = `<tr><td colspan="4" class="empty">Nothing in this band.</td></tr>`;
+    return;
+  }
+  $("alerts").innerHTML = rows.map((r) =>
+    `<tr data-id="${r.transaction_id}">
+       <td>${r.transaction_id}</td>
+       <td><span class="pill ${r.band}">${r.band}</span></td>
+       <td>${r.risk_score.toFixed(0)}</td>
+       <td>${money(r.amount)}</td></tr>`).join("");
+
+  $("alerts").querySelectorAll("tr[data-id]").forEach((tr) => {
+    tr.onclick = async () => {
+      $("alerts").querySelectorAll("tr").forEach((x) => x.removeAttribute("aria-selected"));
+      tr.setAttribute("aria-selected", "true");
+      try { renderDetail(await getJSON(`/transactions/${tr.dataset.id}`)); }
+      catch (e) { $("error").textContent = e.message; }
+    };
+  });
+}
+
+function renderDetail(a) {
+  $("detail-empty").hidden = true;
+  $("detail").hidden = false;
+  const colour = `var(${BAND_VAR[a.band]})`;
+  const factors = a.factors.slice(0, 6).map((f) => {
+    const up = f.contribution > 0;
+    const w = Math.max(4, Math.round(f.share * 100));
+    return `<div class="factor">
+      <div class="top"><span>${f.label}</span>
+        <span class="val">${up ? "+" : ""}${f.contribution.toFixed(2)}</span></div>
+      <div class="fbar"><i class="${up ? "up" : "down"}" style="width:${w}%"></i></div>
+    </div>`;
+  }).join("");
+
+  $("detail").innerHTML = `
+    <div style="font-size:12px;color:var(--muted)">${a.transaction_id}</div>
+    <div class="score" style="margin-top:6px">${a.risk_score.toFixed(0)}<span> / 100</span></div>
+    <div style="margin-top:9px"><span class="pill ${a.band}">${a.band}</span></div>
+    <div class="meter"><i style="width:${a.risk_score}%;background:${colour}"></i></div>
+    <div style="font-size:12.5px;color:var(--ink-2);margin-bottom:14px">
+      fraud probability ${a.probability.toFixed(4)} · ${money(a.amount)}</div>
+    ${factors}
+    <div class="legend">Warm bars raise risk, cool bars lower it; the signed value
+      is shown so direction never depends on colour alone.</div>
+    <div class="summary">${a.summary}</div>`;
+}
+
+async function loadAlerts(band) {
+  const q = band ? `?limit=25&band=${band}` : "?limit=25";
+  try {
+    renderAlerts((await getJSON("/transactions" + q)).transactions);
+  } catch (e) { $("error").textContent = e.message; }
+}
+
+function renderFilters(bands) {
+  const opts = [["", "All"], ...BANDS.slice().reverse().map((b) => [b, b])];
+  $("filters").innerHTML = opts.map(([v, label]) => {
+    const n = v ? (bands[v] || 0) : Object.values(bands).reduce((a, b) => a + b, 0);
+    return `<button data-band="${v}" aria-pressed="false">${label}
+      <span style="opacity:.7;font-weight:500"> ${nf.format(n)}</span></button>`;
+  }).join("");
+
+  const buttons = [...$("filters").querySelectorAll("button")];
+  const select = (btn) => {
+    buttons.forEach((b) => b.setAttribute("aria-pressed", String(b === btn)));
+    loadAlerts(btn.dataset.band);
+  };
+  buttons.forEach((b) => { b.onclick = () => select(b); });
+  // Open on CRITICAL if there is anything there -- that is the queue that matters.
+  select(bands.CRITICAL ? buttons.find((b) => b.dataset.band === "CRITICAL") : buttons[0]);
+}
+
+(async () => {
+  try {
+    const [stats, model] = await Promise.all([getJSON("/stats"), getJSON("/model")]);
+    renderLive(stats);
+    renderModel(model);
+    renderFilters(stats.bands || {});
+  } catch (e) {
+    $("error").textContent = e.message;
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RazorShield AI — Test Checkout</title>
+<link rel="stylesheet" href="/static/theme.css">
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<style>
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  .mode {
+    display: inline-block; padding: 5px 13px; border-radius: 999px;
+    background: var(--blue-wash); color: var(--on-wash);
+    font-size: 13px; font-weight: 700; margin-top: 14px;
+  }
+  .txn { font-size: 12.5px; color: var(--muted); }
+  .meta-line { font-size: 12.5px; color: var(--muted); margin-top: 14px; }
+  .stack > button { margin-top: 12px; }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="logo" href="/">Razor<b>Shield</b></a>
+    <div class="nav-links">
+      <a href="/dashboard">Console</a>
+      <a href="/checkout" aria-current="page">Test checkout</a>
+      <a href="/docs">API</a>
+    </div>
+    <div class="nav-cta">
+      <a class="btn btn-primary btn-sm" href="/dashboard">Open console</a>
+    </div>
+  </div>
+</nav>
+
+<main class="wrap wrap-narrow">
+  <div class="page-head">
+    <h1>Test checkout</h1>
+    <p>Make a Razorpay Test Mode payment and watch it scored, banded and explained.</p>
+    <span class="mode">Test Mode — no real money moves</span>
+  </div>
+
+  <div class="grid" style="margin-top:22px">
+    <div class="panel">
+      <h2>Payment details</h2>
+      <div class="panel-body">
+        <label for="amount">Amount (INR)</label>
+        <input id="amount" type="number" value="8450" min="1" step="1">
+
+        <label for="customer">Customer ID</label>
+        <input id="customer" type="text" value="CUST_008736">
+
+        <div class="row">
+          <div>
+            <label for="device">Device ID</label>
+            <input id="device" type="text" value="DEV_STOLEN_9001">
+          </div>
+          <div>
+            <label for="location">Location</label>
+            <input id="location" type="text" value="LOC_57">
+          </div>
+        </div>
+
+        <div class="stack">
+          <button id="pay" class="btn btn-primary btn-block">Pay with Razorpay (Test)</button>
+          <button id="simulate" class="btn btn-ghost btn-block">Score without Razorpay</button>
+        </div>
+
+        <p class="hint">
+          Test Mode cards: Visa <code>4100 2800 0000 1007</code>, Mastercard
+          <code>5500 6700 0000 1002</code>, RuPay <code>6527 6589 0000 1005</code> —
+          any future expiry, any CVV. For UPI use <code>success@razorpay</code> or
+          <code>failure@razorpay</code>.
+          The Razorpay button needs <code>RAZORPAY_KEY_ID</code> and
+          <code>RAZORPAY_KEY_SECRET</code>; the second button scores the same
+          features through the same model with no Razorpay account.
+        </p>
+        <div id="error" class="err"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Risk assessment</h2>
+      <div class="panel-body">
+        <div id="empty" class="empty">No transaction scored yet.</div>
+        <div id="result" hidden>
+          <div class="txn" id="txn"></div>
+          <div class="score" style="margin-top:8px"><b id="score"></b><span> / 100</span></div>
+          <div style="margin-top:10px"><span id="band" class="pill"></span></div>
+          <div class="meter"><i id="meter"></i></div>
+          <div id="factors"></div>
+          <div class="legend">Warm bars raise risk, cool bars lower it; the signed
+            value is shown so direction never depends on colour alone.</div>
+          <div id="summary" class="summary"></div>
+          <div id="meta" class="meta-line"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <div class="cols">
+      <div>
+        <div class="logo">Razor<b style="color:var(--blue)">Shield</b> AI</div>
+        <p class="blurb">Transaction risk intelligence: real-time fraud scoring with
+          explanations an analyst can act on and a customer can be told.</p>
+      </div>
+      <div>
+        <h4>Product</h4>
+        <a href="/dashboard">Risk console</a>
+        <a href="/checkout">Test checkout</a>
+        <a href="/docs">API reference</a>
+      </div>
+      <div>
+        <h4>Endpoints</h4>
+        <a href="/health">Health</a>
+        <a href="/model">Model card</a>
+        <a href="/stats">Live stats</a>
+      </div>
+      <div>
+        <h4>Project</h4>
+        <a href="/">Overview</a>
+        <a href="/#evidence">Evidence</a>
+        <a href="/#developers">Developers</a>
+      </div>
+    </div>
+    <div class="fine">
+      RazorShield AI is an independent project built for the Razorpay AI Builder
+      Internship. It is not affiliated with, endorsed by, or connected to Razorpay.
+      All transactions shown are synthetic or Razorpay Test Mode — no real money moves.
+    </div>
+  </div>
+</footer>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const err = (m) => { $("error").textContent = m || ""; };
+
+function fields() {
+  return {
+    amount: parseFloat($("amount").value),
+    customer_id: $("customer").value.trim(),
+    device_id: $("device").value.trim(),
+    location: $("location").value.trim(),
+    device_type: "Mobile",
+  };
+}
+
+function render(a) {
+  $("empty").hidden = true;
+  $("result").hidden = false;
+  $("txn").textContent = a.transaction_id;
+  $("score").textContent = Math.round(a.risk_score);
+  $("band").textContent = a.band;
+  $("band").className = "pill " + a.band;
+  $("meter").style.width = a.risk_score + "%";
+
+  // The sign comes from SHAP, not from us.
+  $("factors").innerHTML = a.factors.slice(0, 5).map((f) => {
+    const up = f.contribution > 0;
+    const pct = Math.max(4, Math.round(f.share * 100));
+    return `<div class="factor">
+      <div class="top"><span>${f.label}</span>
+        <span class="val">${up ? "+" : ""}${f.contribution.toFixed(2)}</span></div>
+      <div class="fbar"><i class="${up ? "up" : "down"}" style="width:${pct}%"></i></div>
+    </div>`;
+  }).join("");
+
+  $("summary").textContent = a.summary;
+  $("meta").textContent =
+    `fraud probability ${a.probability.toFixed(4)} · amount Rs${a.amount.toLocaleString()}`;
+}
+
+async function post(url, body) {
+  const r = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.detail || `${url} returned ${r.status}`);
+  return data;
+}
+
+$("simulate").onclick = async () => {
+  err("");
+  try {
+    const f = fields();
+    render(await post("/score", {
+      ...f,
+      transaction_id: "SIM_" + Date.now(),
+      payment_method: "Card",
+    }));
+  } catch (e) { err(e.message); }
+};
+
+$("pay").onclick = async () => {
+  err("");
+  try {
+    const f = fields();
+    const { order, key_id } = await post("/orders", f);
+    const rzp = new Razorpay({
+      key: key_id,
+      order_id: order.id,
+      amount: order.amount,
+      currency: order.currency,
+      name: "RazorShield AI",
+      description: "Test Mode transaction",
+      theme: { color: "#3395ff" },
+      handler: async (response) => {
+        // Razorpay requires the payment signature to be verified server-side
+        // before a payment is treated as genuine, so all three fields go back
+        // and the server checks them against the order it created. A failed
+        // check rejects the payment outright rather than retrying it.
+        try {
+          render(await post("/payments/verify", {
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature,
+          }));
+        } catch (e) { err(e.message); }
+      },
+    });
+
+    // A declined attempt is real signal -- it feeds failed_attempts_24h. It is
+    // recorded from the signature-verified webhook, never from the browser:
+    // accepting declines from an unauthenticated client would let anyone
+    // poison a customer's velocity features.
+    rzp.on("payment.failed", (response) => {
+      const e = response.error || {};
+      err(`Payment failed: ${e.description || e.code || "unknown error"}`
+          + " — recorded server-side from the verified webhook.");
+    });
+
+    rzp.open();
+  } catch (e) { err(e.message); }
+};
+</script>
+</body>
+</html>

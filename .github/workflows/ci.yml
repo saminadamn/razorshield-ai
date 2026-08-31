@@ -1,0 +1,99 @@
+name: CI
+
+# The claim this repo makes is "the numbers reproduce and the model is served
+# what it was trained on". CI exists to keep that claim true: it regenerates the
+# dataset from scratch, re-runs the quality gate, and re-proves feature parity.
+# A green badge here means those three things still hold on a clean machine.
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  lint-and-test:
+    name: Lint and unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Unit tests
+        run: pytest tests
+
+  pipeline:
+    name: End-to-end pipeline
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      # A smaller dataset than the released 100k: CI is checking that every
+      # stage runs and the gates pass, not reproducing the published metrics.
+      - name: Generate dataset
+        run: python -m razorshield.data.generate --out data/raw --n 30000
+
+      - name: Quality gate
+        run: python -m razorshield.data.validate --data data/raw
+
+      - name: Train and compare models
+        run: python -m razorshield.models.compare --data data/raw --out reports
+
+      - name: SHAP explanations
+        run: python -m razorshield.explain.run --data data/raw --out reports
+
+      - name: Risk bands
+        run: python -m razorshield.scoring.score --data data/raw --out reports
+
+      - name: Training/serving feature parity
+        run: python -m razorshield.serving.parity
+
+      - name: API smoke test
+        run: python -m razorshield.serving.demo
+
+  reproducibility:
+    name: Deterministic output
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      # Same seed must give byte-identical data, or "reproducible" is a claim
+      # rather than a fact.
+      - name: Generate twice and compare
+        run: |
+          python -m razorshield.data.generate --out run_a --n 20000 --seed 42
+          python -m razorshield.data.generate --out run_b --n 20000 --seed 42
+          diff run_a/transactions.csv run_b/transactions.csv
+          echo "byte-identical across runs"
