@@ -70,6 +70,9 @@ jobs:
       - name: Training/serving feature parity
         run: python -m razorshield.serving.parity
 
+      - name: Seed the event store
+        run: python -m razorshield.serving.seed --db data/razorshield.db --score 200
+
       - name: API smoke test
         run: python -m razorshield.serving.demo
 
