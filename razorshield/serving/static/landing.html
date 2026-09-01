@@ -164,7 +164,7 @@
         <a class="btn btn-primary" href="/docs">Read the API reference</a>
       </div>
       <pre class="code"><span class="c"># Score a payment attempt</span>
-curl -X POST http://localhost:8077/score \
+curl -X POST <span id="api-origin">http://localhost:8077</span>/score \
   -H <span class="s">'content-type: application/json'</span> \
   -d <span class="s">'{
     "transaction_id": "txn_001",
@@ -221,6 +221,13 @@ curl -X POST http://localhost:8077/score \
 
 <script>
 const nf = new Intl.NumberFormat();
+// Show the host the page is actually served from, so the sample works on a
+// deployed instance instead of pointing at the reader's own machine.
+(() => {
+  const el = document.getElementById("api-origin");
+  if (el) el.textContent = window.location.origin;
+})();
+
 (async () => {
   try {
     const m = await (await fetch("/model")).json();

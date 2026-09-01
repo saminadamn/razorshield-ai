@@ -74,7 +74,7 @@
       }
     },
     "random_forest": {
-      "fit_seconds": 6.8,
+      "fit_seconds": 7.0,
       "n_estimators_used": 300,
       "validation": {
         "pr_auc": 0.7830706138640683,
@@ -82,7 +82,7 @@
         "saving_pct": 0.8983618006635504
       },
       "test": {
-        "pr_auc": 0.7954632682250337,
+        "pr_auc": 0.795463288969621,
         "roc_auc": 0.9640253327424768,
         "brier": 0.013342946084604401,
         "at_cost_threshold": {
@@ -124,7 +124,7 @@
       }
     },
     "xgboost": {
-      "fit_seconds": 2.0,
+      "fit_seconds": 2.4,
       "n_estimators_used": 49,
       "validation": {
         "pr_auc": 0.805195991609169,
@@ -174,7 +174,7 @@
       }
     },
     "lightgbm": {
-      "fit_seconds": 1.6,
+      "fit_seconds": 3.2,
       "n_estimators_used": 46,
       "validation": {
         "pr_auc": 0.8017637241499627,

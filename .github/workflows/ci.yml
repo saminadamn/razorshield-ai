@@ -100,3 +100,32 @@ jobs:
           python -m razorshield.data.generate --out run_b --n 20000 --seed 42
           diff run_a/transactions.csv run_b/transactions.csv
           echo "byte-identical across runs"
+
+  docker:
+    name: Docker image builds and serves
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t razorshield:ci .
+
+      - name: Run container and hit the endpoints
+        run: |
+          docker run -d --name rs -p 8077:8077 razorshield:ci
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8077/health > /dev/null 2>&1; then break; fi
+            sleep 2
+          done
+          echo "--- health ---"
+          curl -fsS http://127.0.0.1:8077/health
+          echo
+          echo "--- pages ---"
+          for path in / /dashboard /checkout /static/theme.css /model /stats; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8077$path")
+            echo "  $path -> $code"
+            [ "$code" = "200" ] || { echo "FAILED on $path"; docker logs rs; exit 1; }
+          done
+          echo "--- score a payment ---"
+          curl -fsS -X POST http://127.0.0.1:8077/score             -H 'content-type: application/json'             -d '{"transaction_id":"CI_DOCKER_1","customer_id":"CUST_000001","amount":8450}'             | python -c "import json,sys; d=json.load(sys.stdin); print('  score', d['risk_score'], d['band']); assert 0 <= d['risk_score'] <= 100"
+          docker rm -f rs

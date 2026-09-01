@@ -1,0 +1,25 @@
+# Generated inside the build stage - never ship the host's copies.
+data/
+models/
+reports/
+*.db
+
+# Secrets: these arrive as environment variables from the host, never baked in.
+.env
+.env.*
+!.env.example
+
+# Not needed to build or serve.
+.git/
+.github/
+.claude/
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+*.py[cod]
+notebooks/
+tests/
+*.md
+!README.md
+Dockerfile
+.dockerignore
